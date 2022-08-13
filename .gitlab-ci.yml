@@ -1,0 +1,30 @@
+variables:
+    TAG:
+        value: "1.2.0"
+        description: "Docker tag"
+    IMAGE: $DOCKER_USER/$CI_PROJECT_NAME
+    FORCE_COLOR: 1
+
+build-image:
+  stage: build
+  tags:
+    - shell
+  before_script:
+    - docker login docker.io -u $DOCKER_USER -p $DOCKER_TOKEN
+  script:
+    - |
+      docker build \
+        -t $IMAGE:$TAG \
+        -t $IMAGE:latest \
+        -f Dockerfile .
+    - docker push $IMAGE:$TAG
+    - docker push $IMAGE:latest
+  after_script:
+    - docker logout
+    - docker images --format "{{.Repository}}:{{.Tag}}:{{.ID}}" | grep "$IMAGE" | cut -f 3 -d ":" | xargs docker rmi
+
+workflow:
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "web"
+          when: always
+        - when: never
